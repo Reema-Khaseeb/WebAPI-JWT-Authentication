@@ -49,9 +49,6 @@
 
 
 
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 
 //var builder = WebApplication.CreateBuilder(args);
 
@@ -88,11 +85,25 @@ using System.Text;
 //app.Run();
 
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography;
+using System.Text;
+using WebAPIJWTAuthentication;
+
+// Generate a random key (replace this with your secure key generation logic)
+var secureKey = new byte[32]; // 256 bits
+new RNGCryptoServiceProvider().GetBytes(secureKey);
+
+// Convert the byte array to a Base64-encoded string
+var base64Key = Convert.ToBase64String(secureKey);
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add JwtTokenGenerator as a singleton
-builder.Services.AddSingleton<JwtTokenGenerator>(new JwtTokenGenerator("secret-key"));
+builder.Services.AddSingleton<JwtTokenGenerator>(new JwtTokenGenerator(base64Key));
+
+builder.Services.AddControllers();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -103,7 +114,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("your-secret-key")) // Update with your actual secret key
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(base64Key))
         };
     });
 
