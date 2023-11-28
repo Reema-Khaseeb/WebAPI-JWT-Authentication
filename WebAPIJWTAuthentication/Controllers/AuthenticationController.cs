@@ -17,13 +17,14 @@ namespace WebAPIJWTAuthentication.Controllers
 
         [HttpPost("login")]
         [AllowAnonymous]
-        public IActionResult Login([FromBody] LoginCredentials model)
+        public IActionResult Login([FromBody] LoginCredentials loginCredentials)
         {
             // Validate user credentials
-            if (IsValidUser(model.Username, model.Password))
+            if (IsValidUser(loginCredentials))
             {
                 // If valid, generate and return a JWT token
-                var token = _tokenGenerator.GenerateToken(model.Username, model.Password);
+                var token = _tokenGenerator.GenerateToken(loginCredentials);
+                
                 return Ok(new { Token = token });
             }
 
@@ -31,7 +32,7 @@ namespace WebAPIJWTAuthentication.Controllers
             return Unauthorized(new { Message = "Invalid username or password" });
         }
 
-        public bool IsValidUser(string username, string password)
+        public bool IsValidUser(LoginCredentials loginCredentials)
         {
             var validUsers = new Dictionary<string, string>
             {
@@ -40,7 +41,9 @@ namespace WebAPIJWTAuthentication.Controllers
             };
 
             // Check if the provided username exists and the password matches
-            return validUsers.TryGetValue(username, out var expectedPassword) && password == expectedPassword;
+            return validUsers.TryGetValue(
+                loginCredentials.Username, out var expectedPassword) &&
+                loginCredentials.Password == expectedPassword;
         }
     }
 }

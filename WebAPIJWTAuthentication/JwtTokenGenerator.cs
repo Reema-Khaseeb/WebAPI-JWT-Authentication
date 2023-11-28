@@ -2,34 +2,39 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using WebAPIJWTAuthentication.Models;
 
 namespace WebAPIJWTAuthentication
 {
     public class JwtTokenGenerator
     {
         private readonly string _secretKey;
+        private readonly IConfiguration _configuration;
 
-        public JwtTokenGenerator(string secretKey)
+        public JwtTokenGenerator(IConfiguration configuration)
         {
-            _secretKey = secretKey;
+            _configuration = configuration ?? 
+                throw new ArgumentNullException(nameof(configuration));
+            _secretKey = _configuration["Authentication:SecretKey"];
         }
 
-        public string GenerateToken(string username, string password)
+        public string GenerateToken(LoginCredentials loginCredentials)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_secretKey);
+            var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
+            const int expiringDays = 2;
+            var signingCredentials = new SigningCredentials(
+                    symmetricSecurityKey,
+                    SecurityAlgorithms.HmacSha256Signature);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    new(ClaimTypes.Name, username)
+                    new(ClaimTypes.Name, loginCredentials.Username)
                 }),
-                Expires = DateTime.UtcNow.AddHours(1), // Token expiration time
-                SigningCredentials = new SigningCredentials(
-                    new SymmetricSecurityKey(key), 
-                    SecurityAlgorithms.HmacSha256Signature
-                    )
+                Expires = DateTime.UtcNow.AddDays(expiringDays), // Token expiration time
+                SigningCredentials = signingCredentials
             };
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
@@ -39,7 +44,6 @@ namespace WebAPIJWTAuthentication
         public bool ValidateToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_secretKey);
 
             try
             {
