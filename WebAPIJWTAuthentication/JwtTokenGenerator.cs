@@ -50,7 +50,7 @@ namespace WebAPIJWTAuthentication
                 tokenHandler.ValidateToken(token, GetTokenValidationParameters(), out _);
                 return true;
             }
-            catch (Exception)
+            catch (SecurityTokenException)
             {
                 // Token validation failed
                 return false;
@@ -69,5 +69,4 @@ namespace WebAPIJWTAuthentication
             };
         }
     }
-
 }
